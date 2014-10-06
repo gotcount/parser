@@ -15,6 +15,7 @@ import org.parboiled.parserunners.ReportingParseRunner;
 import org.parboiled.support.ParsingResult;
 import static org.fest.assertions.api.Assertions.*;
 import org.junit.Ignore;
+import org.parboiled.common.Predicate;
 
 /**
  *
@@ -31,7 +32,7 @@ public class QueryParserTest {
         reportingParseRunner = new ReportingParseRunner<>(parser.Query());
     }
 
-    private Map<String, Check> defaultSuccessChecks(ParsingResult<Object> result) {
+    private Map<String, Predicate> defaultSuccessChecks(ParsingResult<Object> result) {
         assertThat(result.matched).isTrue();
         assertThat(result.resultValue).isInstanceOf(Map.class);
         return (Map) result.resultValue;
@@ -49,11 +50,11 @@ public class QueryParserTest {
 
         ParsingResult<Object> result = run(input);
         defaultSuccessChecks(result);
-        final Map<String, Check> mapped = (Map) result.resultValue;
+        final Map<String, Predicate> mapped = (Map) result.resultValue;
         assertThat(mapped.size()).isEqualTo(1);
         assertThat(mapped.containsKey("d")).isTrue();
-        assertThat(mapped.get("d").test(123)).isTrue();
-        assertThat(mapped.get("d").test(12)).isFalse();
+        assertThat(mapped.get("d").apply(123)).isTrue();
+        assertThat(mapped.get("d").apply(12)).isFalse();
 
     }
 
@@ -66,11 +67,11 @@ public class QueryParserTest {
 
         ParsingResult<Object> result = run(input);
         defaultSuccessChecks(result);
-        final Map<String, Check> mapped = (Map) result.resultValue;
+        final Map<String, Predicate> mapped = (Map) result.resultValue;
         assertThat(mapped.size()).isEqualTo(1);
         assertThat(mapped.containsKey(dimension)).isTrue();
-        assertThat(mapped.get(dimension).test(filter)).isTrue();
-        assertThat(mapped.get(dimension).test(12)).isFalse();
+        assertThat(mapped.get(dimension).apply(filter)).isTrue();
+        assertThat(mapped.get(dimension).apply(12)).isFalse();
 
     }
 
@@ -82,12 +83,12 @@ public class QueryParserTest {
         String input = dimension + ":" + filter;
 
         ParsingResult<Object> result = run(input);
-        final Map<String, Check> mapped = defaultSuccessChecks(result);
+        final Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.size()).isEqualTo(1);
         assertThat(mapped.containsKey(dimension)).isTrue();
-        assertThat(mapped.get(dimension).test(filter)).isTrue();
-        assertThat(mapped.get(dimension).test(12)).isFalse();
+        assertThat(mapped.get(dimension).apply(filter)).isTrue();
+        assertThat(mapped.get(dimension).apply(12)).isFalse();
 
     }
 
@@ -106,24 +107,24 @@ public class QueryParserTest {
         String input = "d0:ab\\:cd;d1:a\\(b\\)c;d2:a\\[b\\]c;d3:a\\;b;d4:a\\!bc";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0", "d1", "d2", "d3", "d4");
-        assertThat(mapped.get("d0").test("ab:cd")).isTrue();
-        assertThat(mapped.get("d1").test("a(b)c")).isTrue();
-        assertThat(mapped.get("d2").test("a[b]c")).isTrue();
-        assertThat(mapped.get("d3").test("a;b")).isTrue();
-        assertThat(mapped.get("d4").test("a!bc")).isTrue();
+        assertThat(mapped.get("d0").apply("ab:cd")).isTrue();
+        assertThat(mapped.get("d1").apply("a(b)c")).isTrue();
+        assertThat(mapped.get("d2").apply("a[b]c")).isTrue();
+        assertThat(mapped.get("d3").apply("a;b")).isTrue();
+        assertThat(mapped.get("d4").apply("a!bc")).isTrue();
     }
 
     @Test
     public void escapedExclamationMarkAtBeginning() {
         String input = "d:\\!abc";
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d");
-        assertThat(mapped.get("d").test("!abc")).isTrue();
+        assertThat(mapped.get("d").apply("!abc")).isTrue();
     }
 
     @Test
@@ -132,11 +133,11 @@ public class QueryParserTest {
         String input = "d0:0;d1:1";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0", "d1");
-        assertThat(mapped.get("d0").test(0)).isTrue();
-        assertThat(mapped.get("d1").test(1)).isTrue();
+        assertThat(mapped.get("d0").apply(0)).isTrue();
+        assertThat(mapped.get("d1").apply(1)).isTrue();
     }
 
     @Test
@@ -145,12 +146,12 @@ public class QueryParserTest {
         String input = "d0:12:13;d1:2001-01-01;d2:aString";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0", "d1", "d2");
-        assertThat(mapped.get("d0").test(getDate(1970, 1, 1, 12, 13, 0))).isTrue();
-        assertThat(mapped.get("d1").test(getDate(2001, 01, 01, 0, 0, 0))).isTrue();
-        assertThat(mapped.get("d2").test("aString")).isTrue();
+        assertThat(mapped.get("d0").apply(getDate(1970, 1, 1, 12, 13, 0))).isTrue();
+        assertThat(mapped.get("d1").apply(getDate(2001, 01, 01, 0, 0, 0))).isTrue();
+        assertThat(mapped.get("d2").apply("aString")).isTrue();
     }
 
     @Test
@@ -159,14 +160,14 @@ public class QueryParserTest {
         String input = "d0:!0;d1:!abc";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0", "d1");
-        assertThat(mapped.get("d0").test(0)).isFalse();
-        assertThat(mapped.get("d0").test(1)).isTrue();
+        assertThat(mapped.get("d0").apply(0)).isFalse();
+        assertThat(mapped.get("d0").apply(1)).isTrue();
 
-        assertThat(mapped.get("d1").test("ab")).isTrue();
-        assertThat(mapped.get("d1").test("abc")).isFalse();
+        assertThat(mapped.get("d1").apply("ab")).isTrue();
+        assertThat(mapped.get("d1").apply("abc")).isFalse();
 
     }
     
@@ -176,11 +177,11 @@ public class QueryParserTest {
         String input = "d1:!2012-12-24";
         
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d1");
-        assertThat(mapped.get("d1").test(getDate(2012, 12, 24, 0, 0, 0))).isFalse();
-        assertThat(mapped.get("d1").test(getDate(2012, 12, 25, 0, 0, 0))).isTrue();
+        assertThat(mapped.get("d1").apply(getDate(2012, 12, 24, 0, 0, 0))).isFalse();
+        assertThat(mapped.get("d1").apply(getDate(2012, 12, 25, 0, 0, 0))).isTrue();
     }
 
     @Test
@@ -245,7 +246,7 @@ public class QueryParserTest {
         String input = "d0:2012-02-28";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         Calendar c = Calendar.getInstance();
         c.set(Calendar.MILLISECOND, 0);
@@ -253,7 +254,7 @@ public class QueryParserTest {
         Date expected = c.getTime();
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        assertThat(mapped.get("d0").test(expected)).isTrue();
+        assertThat(mapped.get("d0").apply(expected)).isTrue();
 
     }
 
@@ -263,7 +264,7 @@ public class QueryParserTest {
         String input = "d0:12:46";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         Calendar c = Calendar.getInstance();
         c.set(Calendar.MILLISECOND, 0);
@@ -271,7 +272,7 @@ public class QueryParserTest {
         Date expected = c.getTime();
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        assertThat(mapped.get("d0").test(expected)).isTrue();
+        assertThat(mapped.get("d0").apply(expected)).isTrue();
 
     }
 
@@ -282,14 +283,14 @@ public class QueryParserTest {
         String input = "d0:[a,b,c,d]";
 
         ParsingResult<Object> result = run(input);
-        Map<String, Check> mapped = defaultSuccessChecks(result);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        assertThat(mapped.get("d0").test("a")).isTrue();
-        assertThat(mapped.get("d0").test("b")).isTrue();
-        assertThat(mapped.get("d0").test("c")).isTrue();
-        assertThat(mapped.get("d0").test("d")).isTrue();
-        assertThat(mapped.get("d0").test("e")).isFalse();
+        assertThat(mapped.get("d0").apply("a")).isTrue();
+        assertThat(mapped.get("d0").apply("b")).isTrue();
+        assertThat(mapped.get("d0").apply("c")).isTrue();
+        assertThat(mapped.get("d0").apply("d")).isTrue();
+        assertThat(mapped.get("d0").apply("e")).isFalse();
 
     }
 

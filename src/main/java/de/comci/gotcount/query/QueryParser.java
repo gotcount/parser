@@ -12,6 +12,7 @@ import org.parboiled.BaseParser;
 import org.parboiled.Rule;
 import org.parboiled.annotations.BuildParseTree;
 import org.parboiled.annotations.SuppressSubnodes;
+import org.parboiled.common.Predicate;
 import org.parboiled.support.StringVar;
 
 /**
@@ -25,27 +26,27 @@ import org.parboiled.support.StringVar;
  */
 @BuildParseTree
 public class QueryParser extends BaseParser<Object> {
-
-    Map<String, Check> map = new HashMap<>();
+    
+    Map<String, Predicate> map = new HashMap<>();
 
     Rule Query() {
 
         return Sequence(
                 Filter(),
-                addToMap((String) pop(1), (Check) pop()),
+                addToMap((String) pop(1), (Predicate) pop()),
                 ZeroOrMore(
                         Sequence(
                                 TestNot(String("\\")),
                                 String(";"),
                                 Filter(),
-                                addToMap((String) pop(1), (Check) pop())
+                                addToMap((String) pop(1), (Predicate) pop())
                         )
                 ),
                 push(map)
         );
     }
 
-    boolean addToMap(String key, Check value) {
+    boolean addToMap(String key, Predicate value) {
         map.put(key, value);
         return true;
     }
@@ -310,13 +311,13 @@ public class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean test(Object value) {
+        public boolean apply(Object value) {
             typeCheck(value);
             return ((v == value) || (v.doubleValue() == ((Number) value).doubleValue())) ^ isNot; // is in 'a xor b'
         }
     }
 
-    public static class DefaultCheck<T> implements Check {
+    public static class DefaultCheck<T> implements Predicate {
 
         final T v;
         final boolean isNot;
@@ -336,7 +337,7 @@ public class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean test(Object value) {
+        public boolean apply(Object value) {
             typeCheck(value);
             return ((v == value) || (v != null && v.equals(value))) ^ isNot; // is in 'a xor b'
         }
@@ -350,7 +351,7 @@ public class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean test(Object value) {
+        public boolean apply(Object value) {
             typeCheck(value);
             return ((List)v).contains(value) ^isNot;
         }
