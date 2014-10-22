@@ -8,13 +8,13 @@ package de.comci.gotcount.query;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+import static org.fest.assertions.api.Assertions.assertThat;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.parboiled.Parboiled;
 import org.parboiled.parserunners.ReportingParseRunner;
 import org.parboiled.support.ParsingResult;
-import static org.fest.assertions.api.Assertions.*;
-import org.junit.Ignore;
 
 /**
  *

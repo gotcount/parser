@@ -12,7 +12,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
- *
+ * Filter constructs the predicate set based on a query string
+ * 
  * @author Sebastian Maier (sebastian.maier@comci.de)
  */
 public class Filter {
