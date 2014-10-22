@@ -25,8 +25,8 @@ import org.parboiled.support.StringVar;
  * @author Sebastian Maier (sebastian.maier@comci.de)
  */
 @BuildParseTree
-public class QueryParser extends BaseParser<Object> {
-    
+class QueryParser extends BaseParser<Object> {
+
     Map<String, Predicate> map = new HashMap<>();
 
     Rule Query() {
@@ -77,7 +77,7 @@ public class QueryParser extends BaseParser<Object> {
     Rule Condition() {
         return FirstOf(
                 ListPredicate(),
-                Predicate()                
+                Predicate()
         );
     }
 
@@ -103,14 +103,14 @@ public class QueryParser extends BaseParser<Object> {
                         push(new ListCheck<>(pop(), true, Object.class))
                 ),
                 Sequence(
-                        String("("), 
-                        AtomList(), 
-                        String(")"), 
+                        String("("),
+                        AtomList(),
+                        String(")"),
                         push(new ListCheck<>(pop(), true, Object.class))
                 )
         );
     }
-    
+
     Rule AtomList() {
         List l = new LinkedList();
         return Sequence(
@@ -128,15 +128,15 @@ public class QueryParser extends BaseParser<Object> {
                 push(l)
         );
     }
-    
+
     boolean addToList(List l, Object value) {
         l.add(value);
         return true;
     }
-    
+
     Rule Atom() {
         return FirstOf(
-                Time(),Date(),Number(),String()
+                Time(), Date(), Number(), String()
         );
     }
 
@@ -353,9 +353,9 @@ public class QueryParser extends BaseParser<Object> {
         @Override
         public boolean apply(Object value) {
             typeCheck(value);
-            return ((List)v).contains(value) ^isNot;
+            return ((List) v).contains(value) ^ isNot;
         }
-        
+
     }
-    
+
 }
