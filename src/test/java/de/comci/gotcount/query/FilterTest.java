@@ -22,8 +22,8 @@ public class FilterTest {
     public void testFromString() {
         System.out.println("fromString");
         Filter f = Filter.fromString("d0:abc;d1:!4");
-        assertThat(f.getPredicate("d0").apply("abc")).isTrue();
-        assertThat(f.getPredicate("d1").apply(5)).isTrue();
+        assertThat(f.getPredicate("d0").test("abc")).isTrue();
+        assertThat(f.getPredicate("d1").test(5)).isTrue();
     }
     
     @Test
@@ -49,8 +49,8 @@ public class FilterTest {
     public void testGetPredicate() {
         System.out.println("fromString");
         Filter f = Filter.fromString("d0:abc;d1:!4");
-        assertThat(f.getPredicate("d0").apply("abc")).isTrue();
-        assertThat(f.getPredicate("d1").apply(5)).isTrue();
+        assertThat(f.getPredicate("d0").test("abc")).isTrue();
+        assertThat(f.getPredicate("d1").test(5)).isTrue();
     }
 
 }

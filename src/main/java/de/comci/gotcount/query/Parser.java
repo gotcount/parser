@@ -7,7 +7,6 @@ package de.comci.gotcount.query;
 
 import java.util.Map;
 import org.parboiled.Parboiled;
-import org.parboiled.common.Predicate;
 import org.parboiled.parserunners.ReportingParseRunner;
 
 /**

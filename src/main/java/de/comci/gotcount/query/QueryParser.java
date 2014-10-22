@@ -12,7 +12,6 @@ import org.parboiled.BaseParser;
 import org.parboiled.Rule;
 import org.parboiled.annotations.BuildParseTree;
 import org.parboiled.annotations.SuppressSubnodes;
-import org.parboiled.common.Predicate;
 import org.parboiled.support.StringVar;
 
 /**
@@ -28,7 +27,7 @@ import org.parboiled.support.StringVar;
 class QueryParser extends BaseParser<Object> {
 
     Map<String, Predicate> map = new HashMap<>();
-
+    
     Rule Query() {
 
         return Sequence(
@@ -311,13 +310,13 @@ class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean apply(Object value) {
+        public boolean test(Number value) {
             typeCheck(value);
             return ((v == value) || (v.doubleValue() == ((Number) value).doubleValue())) ^ isNot; // is in 'a xor b'
         }
     }
 
-    public static class DefaultCheck<T> implements Predicate {
+    public static class DefaultCheck<T> implements Predicate<T> {
 
         final T v;
         final boolean isNot;
@@ -329,7 +328,7 @@ class QueryParser extends BaseParser<Object> {
             this.type = type;
         }
 
-        public final boolean typeCheck(Object value) {
+        public final boolean typeCheck(T value) {
             if (value != null && !type.isAssignableFrom(value.getClass())) {
                 throw new IllegalArgumentException("not a " + type.getSimpleName());
             }
@@ -337,7 +336,7 @@ class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean apply(Object value) {
+        public boolean test(T value) {
             typeCheck(value);
             return ((v == value) || (v != null && v.equals(value))) ^ isNot; // is in 'a xor b'
         }
@@ -351,7 +350,7 @@ class QueryParser extends BaseParser<Object> {
         }
 
         @Override
-        public boolean apply(Object value) {
+        public boolean test(T value) {
             typeCheck(value);
             return ((List) v).contains(value) ^ isNot;
         }
