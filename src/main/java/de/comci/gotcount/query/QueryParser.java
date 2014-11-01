@@ -65,7 +65,7 @@ class QueryParser extends BaseParser<Object> {
                 ZeroOrMore(
                         FirstOf(
                                 Char(),
-                                Integer(),
+                                Long(),
                                 String("-"),
                                 String("_")
                         )
@@ -178,26 +178,25 @@ class QueryParser extends BaseParser<Object> {
 
     Rule Number() {
         return FirstOf(
-                Integer(),
+                Long(),
                 Double()
         );
     }
 
-    Rule Integer() {
+    Rule Long() {
         return Sequence(
                 Digits(),
                 // parse the input text matched by the preceding "Digits" rule,
                 // convert it into an Integer and push it onto the value stack
                 // the action uses a default string in case it is run during error recovery (resynchronization)
-                push(Integer.parseInt(matchOrDefault("0")))
+                push(Long.parseLong(matchOrDefault("0")))
         );
     }
 
     Rule Double() {
-        return Sequence(
-                Integer(),
+        return Sequence(Long(),
                 String("."),
-                Integer(),
+                Long(),
                 // push the double value to the stack removing the previous
                 // 2 integer values
                 push(Double.parseDouble(pop(1) + "." + pop()))
@@ -358,7 +357,7 @@ class QueryParser extends BaseParser<Object> {
         }
 
     }
-
+    
     public static class RangeCheck implements Predicate<Comparable> {
 
         private final boolean toInclusive;
@@ -367,18 +366,32 @@ class QueryParser extends BaseParser<Object> {
         private final Comparable from;
 
         public RangeCheck(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
-            this.from = from;
-            this.to = to;
+            if (from.compareTo(to) > 0) {
+                this.from = to;
+                this.to = from;
+            } else {
+                this.from = from;
+                this.to = to;
+            }
             this.fromInclusive = fromInclusive;
             this.toInclusive = toInclusive;
         }
 
         @Override
         public boolean test(Comparable test) {
-
-            boolean lowerBorder = (fromInclusive && test.compareTo(from) >= 0) || (test.compareTo(from) > 0);
-            boolean upperBorder = (toInclusive && test.compareTo(to) <= 0) || (test.compareTo(to) < 0);
-
+            
+            boolean lowerBorder, upperBorder;
+            
+            if (test.getClass().isAssignableFrom(from.getClass())) {
+                lowerBorder = (fromInclusive && test.compareTo(from) >= 0) || (test.compareTo(from) > 0);
+                upperBorder = (toInclusive && test.compareTo(to) <= 0) || (test.compareTo(to) < 0);
+            } else if (from.getClass().isAssignableFrom(test.getClass())) {
+                lowerBorder = (fromInclusive && from.compareTo(test) <= 0) || (from.compareTo(to) < 0);
+                upperBorder = (toInclusive && to.compareTo(test) >= 0) || (to.compareTo(test) > 0);
+            } else {
+                throw new RuntimeException(String.format("types not compatible for comparison: %s <> %s", test.getClass(), from.getClass()));
+            }
+            
             return lowerBorder && upperBorder;
 
         }

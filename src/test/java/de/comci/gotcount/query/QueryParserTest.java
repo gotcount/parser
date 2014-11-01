@@ -303,7 +303,7 @@ public class QueryParserTest {
 
         assertThat(mapped.keySet()).containsOnly("d0");
         
-        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, false, 5, false));
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, false, 5l, false));
 
     }
     
@@ -317,7 +317,7 @@ public class QueryParserTest {
 
         assertThat(mapped.keySet()).containsOnly("d0");
         
-        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, true, 5, false));
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, true, 5l, false));
 
     }
     
@@ -331,7 +331,7 @@ public class QueryParserTest {
 
         assertThat(mapped.keySet()).containsOnly("d0");
         
-        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, false, 5, true));
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, false, 5l, true));
 
     }
     
@@ -399,7 +399,7 @@ public class QueryParserTest {
         
         Predicate actual = (Predicate) result.resultValue;
         assertThat(actual).isNotNull();
-        assertThat(actual.test(23)).isTrue();
+        assertThat(actual.test(23l)).isTrue();
         
     }
     
@@ -460,6 +460,13 @@ public class QueryParserTest {
         assertThat(rc.test(2)).isTrue();
         assertThat(rc.test(3)).isTrue();        
         assertThat(rc.test(4)).isFalse();
+        
+    }
+    
+    @Test
+    public void switchedBordersInRangeCheck() {
+        
+        assertThat(new QueryParser.RangeCheck(5, true, 1, true)).isEqualTo(new QueryParser.RangeCheck(1, true, 5, true));
         
     }
 
