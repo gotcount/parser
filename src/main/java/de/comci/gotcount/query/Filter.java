@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import org.parboiled.Parboiled;
+import org.parboiled.parserunners.ReportingParseRunner;
 
 /**
  * Filter constructs the predicate set based on a query string
@@ -25,7 +27,9 @@ public class Filter {
     private final Map<String, Predicate> map;
 
     public Filter(String input) {
-        map = Parser.INSTANCE.parser(input);
+        QueryParser parser = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> reportingParseRunner = new ReportingParseRunner<>(parser.Query());
+        map = (Map)reportingParseRunner.run(input).resultValue;        
     }
     
     public Set<String> getDimensions() {

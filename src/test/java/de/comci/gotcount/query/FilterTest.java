@@ -52,5 +52,14 @@ public class FilterTest {
         assertThat(f.getPredicate("d0").test("abc")).isTrue();
         assertThat(f.getPredicate("d1").test(5)).isTrue();
     }
+    
+    @Test
+    public void testList() {
+        Filter f = Filter.fromString("path:{node,user}");
+        assertThat(f.getPredicate("path").test("node")).isTrue();
+        assertThat(f.getPredicate("path").test("user")).isTrue();
+        assertThat(f.getPredicate("path").test("n")).isFalse();
+        assertThat(f.getPredicate("path").test("")).isFalse();
+    }
 
 }

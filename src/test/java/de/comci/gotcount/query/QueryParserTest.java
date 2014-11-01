@@ -276,21 +276,191 @@ public class QueryParserTest {
     }
 
     @Test
-    @Ignore
     public void inStringList() {
 
-        String input = "d0:[a,b,c,d]";
+        String input = "d0:{a,befg,c,d}";
 
         ParsingResult<Object> result = run(input);
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
         assertThat(mapped.get("d0").test("a")).isTrue();
-        assertThat(mapped.get("d0").test("b")).isTrue();
+        assertThat(mapped.get("d0").test("befg")).isTrue();
         assertThat(mapped.get("d0").test("c")).isTrue();
         assertThat(mapped.get("d0").test("d")).isTrue();
         assertThat(mapped.get("d0").test("e")).isFalse();
+        assertThat(mapped.get("d0").test("b")).isFalse();
 
+    }
+    
+    @Test
+    public void betweenExclusiveInt() {
+
+        String input = "d0:(1,5)";
+
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, false, 5, false));
+
+    }
+    
+    @Test
+    public void betweenInExclusiveInt() {
+
+        String input = "d0:[1,5)";
+
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, true, 5, false));
+
+    }
+    
+    @Test
+    public void betweenExInclusiveInt() {
+
+        String input = "d0:(1,5]";
+
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1, false, 5, true));
+
+    }
+    
+    @Test
+    public void betweenExInclusiveDate() {
+
+        String input = "d0:(2010-01-01,2013-12-31)";
+
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        assertThat(mapped.get("d0").test(new Date(109,11,31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110,0,1))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110,0,2))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113,11,30))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113,11,31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(114,0,1))).isFalse();
+
+    }
+    
+    @Test
+    public void betweenInclusiveDate() {
+
+        String input = "d0:[2010-01-01,2013-12-31]";
+
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        assertThat(mapped.get("d0").test(new Date(109,11,31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110,0,1))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(110,0,2))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113,11,30))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113,11,31))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(114,0,1))).isFalse();
+
+    }
+    
+    @Test
+    @Ignore // does not work yet
+    public void negatedDoubleList() {
+        
+        String input = "d0:!{0.1,0.4,65}";
+        
+        ParsingResult<Object> result = run(input);
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        assertThat(mapped.get("d0").test(0.1)).isFalse();
+        assertThat(mapped.get("d0").test(0.4)).isFalse();
+        assertThat(mapped.get("d0").test(65)).isFalse();
+        assertThat(mapped.get("d0").test(0)).isTrue();
+        assertThat(mapped.get("d0").test(Double.MIN_VALUE)).isTrue();
+        assertThat(mapped.get("d0").test(Double.MAX_VALUE)).isTrue();
+    }
+    
+    @Test
+    public void testListPredicate() {
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.ListPredicate());
+        ParsingResult<Object> result = runner.run("{1,23,4}");
+        
+        Predicate actual = (Predicate) result.resultValue;
+        assertThat(actual).isNotNull();
+        assertThat(actual.test(23)).isTrue();
+        
+    }
+    
+    @Test
+    public void doubleNumber() {
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.Double());
+        ParsingResult<Object> result = runner.run("0.1");
+        assertThat(result.resultValue).isEqualTo(0.1);
+    }
+    
+    @Test
+    public void rangeCheckInclusive() {
+        
+        QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, true, 3, true);
+        
+        assertThat(rc.test(0)).isFalse();
+        assertThat(rc.test(1)).isTrue();
+        assertThat(rc.test(2)).isTrue();
+        assertThat(rc.test(3)).isTrue();        
+        assertThat(rc.test(4)).isFalse();
+        
+    }
+    
+    @Test
+    public void rangeCheckExclusive() {
+        
+        QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, false, 3, false);
+        
+        assertThat(rc.test(0)).isFalse();
+        assertThat(rc.test(1)).isFalse();
+        assertThat(rc.test(2)).isTrue();
+        assertThat(rc.test(3)).isFalse();        
+        assertThat(rc.test(4)).isFalse();
+        
+    }
+    
+    @Test
+    public void rangeCheckInExclusive() {
+        
+        QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, true, 3, false);
+        
+        assertThat(rc.test(0)).isFalse();
+        assertThat(rc.test(1)).isTrue();
+        assertThat(rc.test(2)).isTrue();
+        assertThat(rc.test(3)).isFalse();        
+        assertThat(rc.test(4)).isFalse();
+        
+    }
+    
+    @Test
+    public void rangeCheckExInclusive() {
+        
+        QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, false, 3, true);
+        
+        assertThat(rc.test(0)).isFalse();
+        assertThat(rc.test(1)).isFalse();
+        assertThat(rc.test(2)).isTrue();
+        assertThat(rc.test(3)).isTrue();        
+        assertThat(rc.test(4)).isFalse();
+        
     }
 
 }

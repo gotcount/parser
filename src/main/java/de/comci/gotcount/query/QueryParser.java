@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.parboiled.BaseParser;
 import org.parboiled.Rule;
 import org.parboiled.annotations.BuildParseTree;
@@ -27,7 +28,7 @@ import org.parboiled.support.StringVar;
 class QueryParser extends BaseParser<Object> {
 
     Map<String, Predicate> map = new HashMap<>();
-    
+
     Rule Query() {
 
         return Sequence(
@@ -95,18 +96,33 @@ class QueryParser extends BaseParser<Object> {
     }
 
     Rule ListPredicate() {
-        return FirstOf(
-                Sequence(
+        return FirstOf(Sequence(
                         Not(),
-                        Sequence(String("["), AtomList(), String("]")),
+                        Sequence(String("{"), AtomList(), String("}")),
                         push(new ListCheck<>(pop(), true, Object.class))
                 ),
                 Sequence(
-                        String("("),
-                        AtomList(),
-                        String(")"),
-                        push(new ListCheck<>(pop(), true, Object.class))
-                )
+                        Sequence(String("{"), AtomList(), String("}")),
+                        push(new ListCheck<>(pop(), false, Object.class))
+                ),
+                Range(true, true),
+                Range(true, false),
+                Range(false, true),
+                Range(false, false)
+        );
+    }
+
+    Rule Range(final boolean fromInclusive, final boolean toInclusive) {
+        
+        final java.lang.String fromChar = (fromInclusive) ? "["  : "(";
+        final java.lang.String toChar = (toInclusive) ? "]": ")";
+        
+        return Sequence(
+                FirstOf(
+                        Sequence(String(fromChar), Date(), String(","), Date(), String(toChar)),
+                        Sequence(String(fromChar), Number(), String(","), Number(), String(toChar))
+                ),
+                push(new RangeCheck((Comparable) pop(1), fromInclusive, (Comparable) pop(), toInclusive))
         );
     }
 
@@ -341,6 +357,66 @@ class QueryParser extends BaseParser<Object> {
             return ((v == value) || (v != null && v.equals(value))) ^ isNot; // is in 'a xor b'
         }
 
+    }
+
+    public static class RangeCheck implements Predicate<Comparable> {
+
+        private final boolean toInclusive;
+        private final boolean fromInclusive;
+        private final Comparable to;
+        private final Comparable from;
+
+        public RangeCheck(Comparable from, boolean fromInclusive, Comparable to, boolean toInclusive) {
+            this.from = from;
+            this.to = to;
+            this.fromInclusive = fromInclusive;
+            this.toInclusive = toInclusive;
+        }
+
+        @Override
+        public boolean test(Comparable test) {
+
+            boolean lowerBorder = (fromInclusive && test.compareTo(from) >= 0) || (test.compareTo(from) > 0);
+            boolean upperBorder = (toInclusive && test.compareTo(to) <= 0) || (test.compareTo(to) < 0);
+
+            return lowerBorder && upperBorder;
+
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 97 * hash + (this.toInclusive ? 1 : 0);
+            hash = 97 * hash + (this.fromInclusive ? 1 : 0);
+            hash = 97 * hash + Objects.hashCode(this.to);
+            hash = 97 * hash + Objects.hashCode(this.from);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final RangeCheck other = (RangeCheck) obj;
+            if (this.toInclusive != other.toInclusive) {
+                return false;
+            }
+            if (this.fromInclusive != other.fromInclusive) {
+                return false;
+            }
+            if (!Objects.equals(this.to, other.to)) {
+                return false;
+            }
+            if (!Objects.equals(this.from, other.from)) {
+                return false;
+            }
+            return true;
+        }
+        
     }
 
     public static class ListCheck<T> extends DefaultCheck<T> {
