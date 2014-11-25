@@ -125,18 +125,29 @@ class QueryParser extends BaseParser<Object> {
                 push(new RangeCheck((Comparable) pop(1), fromInclusive, (Comparable) pop(), toInclusive))
         );
     }
+    
+    Rule EndOfAtom() {
+        return FirstOf(
+                EOI,
+                String("]"),
+                String("}"),
+                String(")"),
+                String(";"),
+                String(",")
+        );
+    }
 
     Rule AtomList() {
         List l = new LinkedList();
         return Sequence(
-                Atom(),
+                ListContent(),
                 addToList(l, pop()),
                 ZeroOrMore(
                         Sequence(
                                 ZeroOrMore(String(" ")),
                                 String(","),
                                 ZeroOrMore(String(" ")),
-                                Atom(),
+                                ListContent(),
                                 addToList(l, pop())
                         )
                 ),
@@ -149,7 +160,7 @@ class QueryParser extends BaseParser<Object> {
         return true;
     }
 
-    Rule Atom() {
+    Rule ListContent() {
         return FirstOf(
                 Time(), Date(), Number(), String()
         );
@@ -177,12 +188,12 @@ class QueryParser extends BaseParser<Object> {
     }
 
     Rule Number() {
-        return FirstOf(
-                Long(),
-                Double()
-        );
+        return Sequence(FirstOf(                
+            Double(),
+            Long()
+        ),Test(EndOfAtom()));
     }
-
+    
     Rule Long() {
         return Sequence(
                 Digits(),
@@ -356,6 +367,11 @@ class QueryParser extends BaseParser<Object> {
             return ((v == value) || (v != null && v.equals(value))) ^ isNot; // is in 'a xor b'
         }
 
+        @Override
+        public java.lang.String toString() {
+            return String.format("Check(%s,%s,%s)", v, isNot, type);
+        }
+        
     }
     
     public static class RangeCheck implements Predicate<Comparable> {
@@ -428,6 +444,11 @@ class QueryParser extends BaseParser<Object> {
                 return false;
             }
             return true;
+        }
+
+        @Override
+        public java.lang.String toString() {
+            return String.format("Range(%s,%s-%s,%s)", fromInclusive, from, to, toInclusive);
         }
         
     }

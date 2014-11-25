@@ -14,6 +14,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.parboiled.Parboiled;
 import org.parboiled.parserunners.ReportingParseRunner;
+import org.parboiled.support.ParseTreeUtils;
 import org.parboiled.support.ParsingResult;
 
 /**
@@ -290,6 +291,26 @@ public class QueryParserTest {
         assertThat(mapped.get("d0").test("d")).isTrue();
         assertThat(mapped.get("d0").test("e")).isFalse();
         assertThat(mapped.get("d0").test("b")).isFalse();
+
+    }
+    
+    @Test
+    @Ignore // does not work yet
+    public void ipAsString() {
+
+        String input = "d0:10.10.";
+
+        ParsingResult<Object> result = run(input);
+        
+        System.out.println(ParseTreeUtils.printNodeTree(result));
+        
+        Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.keySet()).containsOnly("d0");
+        
+        System.out.println(mapped.get("d0").toString());
+        
+        assertThat(mapped.get("d0")).isEqualTo(new QueryParser.DefaultCheck<>("10.10.10.10", false, String.class));
 
     }
     
