@@ -7,13 +7,16 @@ package de.comci.gotcount.query;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import static org.fest.assertions.api.Assertions.assertThat;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.parboiled.Parboiled;
 import org.parboiled.parserunners.ReportingParseRunner;
+import org.parboiled.parserunners.TracingParseRunner;
 import org.parboiled.support.ParseTreeUtils;
 import org.parboiled.support.ParsingResult;
 
@@ -25,11 +28,13 @@ public class QueryParserTest {
 
     private QueryParser parser;
     private ReportingParseRunner<Object> reportingParseRunner;
+    private TracingParseRunner<Object> traceingParseRunner;
 
     @Before
     public void setUp() {
         parser = Parboiled.createParser(QueryParser.class);
         reportingParseRunner = new ReportingParseRunner<>(parser.Query());
+        traceingParseRunner = new TracingParseRunner<>(parser.Query());
     }
 
     private Map<String, Predicate> defaultSuccessChecks(ParsingResult<Object> result) {
@@ -40,6 +45,11 @@ public class QueryParserTest {
 
     private ParsingResult<Object> run(String input) {
         ParsingResult<Object> result = reportingParseRunner.run(input);
+        return result;
+    }
+
+    private ParsingResult<Object> trace(String input) {
+        ParsingResult<Object> result = traceingParseRunner.run(input);
         return result;
     }
 
@@ -84,11 +94,10 @@ public class QueryParserTest {
 
         ParsingResult<Object> result = run(input);
         final Map<String, Predicate> mapped = defaultSuccessChecks(result);
-
+        
         assertThat(mapped.size()).isEqualTo(1);
         assertThat(mapped.containsKey(dimension)).isTrue();
-        assertThat(mapped.get(dimension).test(filter)).isTrue();
-        assertThat(mapped.get(dimension).test(12)).isFalse();
+        assertThat(mapped.get(dimension)).isEqualTo(new QueryParser.NumberCheck(123l, false));
 
     }
 
@@ -170,12 +179,12 @@ public class QueryParserTest {
         assertThat(mapped.get("d1").test("abc")).isFalse();
 
     }
-    
+
     @Test
     public void negationDate() {
-        
+
         String input = "d1:!2012-12-24";
-        
+
         ParsingResult<Object> result = run(input);
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
@@ -293,27 +302,61 @@ public class QueryParserTest {
         assertThat(mapped.get("d0").test("b")).isFalse();
 
     }
+
+    private void printTrace() {
+        System.out.println(traceingParseRunner.getLog());
+    }
+
+    private void printNodeTree(ParsingResult<Object> result) {
+        System.out.println(ParseTreeUtils.printNodeTree(result));
+    }
     
     @Test
-    @Ignore // does not work yet
+    public void everythingWeConsiderToBeAValidString() {
+        
+        Map<String, QueryParser.DefaultCheck<String>> tests = new HashMap<>();
+        tests.put("1.2.3.4", new QueryParser.DefaultCheck<>("1.2.3.4", false, String.class));
+        tests.put("1+1", new QueryParser.DefaultCheck<>("1+1", false, String.class));
+        tests.put("a", new QueryParser.DefaultCheck<>("a", false, String.class));
+        tests.put("ab", new QueryParser.DefaultCheck<>("ab", false, String.class));
+        tests.put("aB", new QueryParser.DefaultCheck<>("aB", false, String.class));        
+        tests.put("A", new QueryParser.DefaultCheck<>("A", false, String.class));
+        tests.put("Ab", new QueryParser.DefaultCheck<>("Ab", false, String.class));
+        tests.put("AB", new QueryParser.DefaultCheck<>("AB", false, String.class));
+        tests.put("0a", new QueryParser.DefaultCheck<>("0a", false, String.class));
+        tests.put("0ab", new QueryParser.DefaultCheck<>("0ab", false, String.class));
+        tests.put("0aB", new QueryParser.DefaultCheck<>("0aB", false, String.class));        
+        tests.put("0A", new QueryParser.DefaultCheck<>("0A", false, String.class));
+        tests.put("0Ab", new QueryParser.DefaultCheck<>("0Ab", false, String.class));
+        tests.put("0AB", new QueryParser.DefaultCheck<>("0AB", false, String.class));
+        tests.put("a1", new QueryParser.DefaultCheck<>("a1", false, String.class));
+        tests.put("ab1", new QueryParser.DefaultCheck<>("ab1", false, String.class));
+        tests.put("aB1", new QueryParser.DefaultCheck<>("aB1", false, String.class));        
+        tests.put("A1", new QueryParser.DefaultCheck<>("A1", false, String.class));
+        tests.put("Ab1", new QueryParser.DefaultCheck<>("Ab1", false, String.class));
+        tests.put("AB1", new QueryParser.DefaultCheck<>("AB1", false, String.class));
+        
+        for (Entry<String, ? extends QueryParser.DefaultCheck> e : tests.entrySet()) {
+            ParsingResult<Object> result = run("d0:" + e.getKey());
+            Map<String, Predicate> mapped = defaultSuccessChecks(result);
+            assertThat(mapped.keySet()).containsOnly("d0");
+            assertThat(mapped.get("d0")).isEqualTo(e.getValue());
+        }
+        
+    }
+
+    @Test
     public void ipAsString() {
 
-        String input = "d0:10.10.";
-
-        ParsingResult<Object> result = run(input);
+        String input = "d0:10.10.10.10";
         
-        System.out.println(ParseTreeUtils.printNodeTree(result));
-        
+        ParsingResult<Object> result = run(input);        
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
-
         assertThat(mapped.keySet()).containsOnly("d0");
-        
-        System.out.println(mapped.get("d0").toString());
-        
         assertThat(mapped.get("d0")).isEqualTo(new QueryParser.DefaultCheck<>("10.10.10.10", false, String.class));
 
     }
-    
+
     @Test
     public void betweenExclusiveInt() {
 
@@ -323,11 +366,11 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
+
         assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, false, 5l, false));
 
     }
-    
+
     @Test
     public void betweenInExclusiveInt() {
 
@@ -337,11 +380,11 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
+
         assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, true, 5l, false));
 
     }
-    
+
     @Test
     public void betweenExInclusiveInt() {
 
@@ -351,11 +394,11 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
+
         assertThat(mapped.get("d0")).isEqualTo(new QueryParser.RangeCheck(1l, false, 5l, true));
 
     }
-    
+
     @Test
     public void betweenExInclusiveDate() {
 
@@ -365,16 +408,16 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
-        assertThat(mapped.get("d0").test(new Date(109,11,31))).isFalse();
-        assertThat(mapped.get("d0").test(new Date(110,0,1))).isFalse();
-        assertThat(mapped.get("d0").test(new Date(110,0,2))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(113,11,30))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(113,11,31))).isFalse();
-        assertThat(mapped.get("d0").test(new Date(114,0,1))).isFalse();
+
+        assertThat(mapped.get("d0").test(new Date(109, 11, 31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110, 0, 1))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110, 0, 2))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113, 11, 30))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
 
     }
-    
+
     @Test
     public void betweenInclusiveDate() {
 
@@ -384,22 +427,22 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
-        assertThat(mapped.get("d0").test(new Date(109,11,31))).isFalse();
-        assertThat(mapped.get("d0").test(new Date(110,0,1))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(110,0,2))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(113,11,30))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(113,11,31))).isTrue();
-        assertThat(mapped.get("d0").test(new Date(114,0,1))).isFalse();
+
+        assertThat(mapped.get("d0").test(new Date(109, 11, 31))).isFalse();
+        assertThat(mapped.get("d0").test(new Date(110, 0, 1))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(110, 0, 2))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113, 11, 30))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isTrue();
+        assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
 
     }
-    
+
     @Test
     @Ignore // does not work yet
     public void negatedDoubleList() {
-        
+
         String input = "d0:!{0.1,0.4,65}";
-        
+
         ParsingResult<Object> result = run(input);
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
@@ -411,19 +454,19 @@ public class QueryParserTest {
         assertThat(mapped.get("d0").test(Double.MIN_VALUE)).isTrue();
         assertThat(mapped.get("d0").test(Double.MAX_VALUE)).isTrue();
     }
-    
+
     @Test
     public void testListPredicate() {
         QueryParser p = Parboiled.createParser(QueryParser.class);
         ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.ListPredicate());
         ParsingResult<Object> result = runner.run("{1,23,4}");
-        
+
         Predicate actual = (Predicate) result.resultValue;
         assertThat(actual).isNotNull();
         assertThat(actual.test(23l)).isTrue();
-        
+
     }
-    
+
     @Test
     public void doubleNumber() {
         QueryParser p = Parboiled.createParser(QueryParser.class);
@@ -433,62 +476,86 @@ public class QueryParserTest {
     }
     
     @Test
+    public void negativeDoubleNumber() {
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.Double());
+        ParsingResult<Object> result = runner.run("-0.1");
+        assertThat(result.resultValue).isEqualTo(-0.1);
+    }
+    
+    @Test
+    public void longNumber() {
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.Long());
+        ParsingResult<Object> result = runner.run("4711");
+        assertThat(result.resultValue).isEqualTo(4711l);
+    }
+    
+    @Test
+    public void negativeLongNumber() {
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.Long());
+        ParsingResult<Object> result = runner.run("-4711");
+        assertThat(result.resultValue).isEqualTo(-4711l);
+    }
+
+    @Test
     public void rangeCheckInclusive() {
-        
+
         QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, true, 3, true);
-        
+
         assertThat(rc.test(0)).isFalse();
         assertThat(rc.test(1)).isTrue();
         assertThat(rc.test(2)).isTrue();
-        assertThat(rc.test(3)).isTrue();        
+        assertThat(rc.test(3)).isTrue();
         assertThat(rc.test(4)).isFalse();
-        
+
     }
-    
+
     @Test
     public void rangeCheckExclusive() {
-        
+
         QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, false, 3, false);
-        
+
         assertThat(rc.test(0)).isFalse();
         assertThat(rc.test(1)).isFalse();
         assertThat(rc.test(2)).isTrue();
-        assertThat(rc.test(3)).isFalse();        
+        assertThat(rc.test(3)).isFalse();
         assertThat(rc.test(4)).isFalse();
-        
+
     }
-    
+
     @Test
     public void rangeCheckInExclusive() {
-        
+
         QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, true, 3, false);
-        
+
         assertThat(rc.test(0)).isFalse();
         assertThat(rc.test(1)).isTrue();
         assertThat(rc.test(2)).isTrue();
-        assertThat(rc.test(3)).isFalse();        
+        assertThat(rc.test(3)).isFalse();
         assertThat(rc.test(4)).isFalse();
-        
+
     }
-    
+
     @Test
     public void rangeCheckExInclusive() {
-        
+
         QueryParser.RangeCheck rc = new QueryParser.RangeCheck(1, false, 3, true);
-        
+
         assertThat(rc.test(0)).isFalse();
         assertThat(rc.test(1)).isFalse();
         assertThat(rc.test(2)).isTrue();
-        assertThat(rc.test(3)).isTrue();        
+        assertThat(rc.test(3)).isTrue();
         assertThat(rc.test(4)).isFalse();
-        
+
     }
-    
+
     @Test
     public void switchedBordersInRangeCheck() {
-        
+
         assertThat(new QueryParser.RangeCheck(5, true, 1, true)).isEqualTo(new QueryParser.RangeCheck(1, true, 5, true));
-        
+
     }
 
 }

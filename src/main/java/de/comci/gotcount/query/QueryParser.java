@@ -196,6 +196,19 @@ class QueryParser extends BaseParser<Object> {
     
     Rule Long() {
         return Sequence(
+                Sequence(
+                    Optional(String("-")),
+                    Digits()
+                ),
+                // parse the input text matched by the preceding "Digits" rule,
+                // convert it into an Integer and push it onto the value stack
+                // the action uses a default string in case it is run during error recovery (resynchronization)
+                push(Long.parseLong(matchOrDefault("0")))
+        );
+    }
+    
+    Rule PositiveLong() {
+        return Sequence(
                 Digits(),
                 // parse the input text matched by the preceding "Digits" rule,
                 // convert it into an Integer and push it onto the value stack
@@ -203,14 +216,18 @@ class QueryParser extends BaseParser<Object> {
                 push(Long.parseLong(matchOrDefault("0")))
         );
     }
-
+    
     Rule Double() {
-        return Sequence(Long(),
-                String("."),
-                Long(),
+        return Sequence(
+                Sequence(
+                    Optional(String("-")),
+                    Long(),
+                    String("."),
+                    PositiveLong()
+                ),
                 // push the double value to the stack removing the previous
                 // 2 integer values
-                push(Double.parseDouble(pop(1) + "." + pop()))
+                push(Double.parseDouble(matchOrDefault("0")))
         );
     }
 
@@ -312,9 +329,12 @@ class QueryParser extends BaseParser<Object> {
                 ZeroOrMore(
                         FirstOf(
                                 Sequence(Char(), s.append(match())),
+                                Sequence(Digit(), s.append(match())),
+                                Sequence(AnyOfThese(".+"), s.append(match())),
                                 Sequence(String("\\"), AnyOfThese(":()[];!"), s.append(match()))
                         )
                 ),
+                Test(EndOfAtom()),
                 push(s.get())
         );
     }
@@ -370,6 +390,36 @@ class QueryParser extends BaseParser<Object> {
         @Override
         public java.lang.String toString() {
             return String.format("Check(%s,%s,%s)", v, isNot, type);
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 7;
+            hash = 53 * hash + Objects.hashCode(this.v);
+            hash = 53 * hash + (this.isNot ? 1 : 0);
+            hash = 53 * hash + Objects.hashCode(this.type);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final DefaultCheck<?> other = (DefaultCheck<?>) obj;
+            if (!Objects.equals(this.v, other.v)) {
+                return false;
+            }
+            if (this.isNot != other.isNot) {
+                return false;
+            }
+            if (!Objects.equals(this.type, other.type)) {
+                return false;
+            }
+            return true;
         }
         
     }
