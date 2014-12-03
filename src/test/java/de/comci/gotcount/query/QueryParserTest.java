@@ -416,6 +416,9 @@ public class QueryParserTest {
         assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isFalse();
         assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
 
+        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110,0,1), false, new Date(113,11,31), false);        
+        assertThat(mapped.get("d0")).isEqualTo(expected);
+        
     }
 
     @Test
@@ -427,13 +430,16 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-
+        
         assertThat(mapped.get("d0").test(new Date(109, 11, 31))).isFalse();
         assertThat(mapped.get("d0").test(new Date(110, 0, 1))).isTrue();
         assertThat(mapped.get("d0").test(new Date(110, 0, 2))).isTrue();
         assertThat(mapped.get("d0").test(new Date(113, 11, 30))).isTrue();
         assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isTrue();
         assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
+        
+        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110,0,1), true, new Date(113,11,31), true);        
+        assertThat(mapped.get("d0")).isEqualTo(expected);
 
     }
 
