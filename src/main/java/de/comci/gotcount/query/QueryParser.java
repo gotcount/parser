@@ -452,7 +452,7 @@ class QueryParser extends BaseParser<Object> {
                 lowerBorder = (fromInclusive && test.compareTo(from) >= 0) || (test.compareTo(from) > 0);
                 upperBorder = (toInclusive && test.compareTo(to) <= 0) || (test.compareTo(to) < 0);
             } else if (from.getClass().isAssignableFrom(test.getClass())) {
-                lowerBorder = (fromInclusive && from.compareTo(test) <= 0) || (from.compareTo(to) < 0);
+                lowerBorder = (fromInclusive && from.compareTo(test) <= 0) || (from.compareTo(test) < 0);
                 upperBorder = (toInclusive && to.compareTo(test) >= 0) || (to.compareTo(test) > 0);
             } else {
                 throw new RuntimeException(String.format("types not compatible for comparison: %s <> %s", test.getClass(), from.getClass()));
