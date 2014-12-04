@@ -330,7 +330,7 @@ class QueryParser extends BaseParser<Object> {
                         FirstOf(
                                 Sequence(Char(), s.append(match())),
                                 Sequence(Digit(), s.append(match())),
-                                Sequence(AnyOfThese(".+"), s.append(match())),
+                                Sequence(AnyOfThese(".+/"), s.append(match())),
                                 Sequence(String("\\"), AnyOfThese(":()[];!"), s.append(match()))
                         )
                 ),

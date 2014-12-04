@@ -335,6 +335,7 @@ public class QueryParserTest {
         tests.put("A1", new QueryParser.DefaultCheck<>("A1", false, String.class));
         tests.put("Ab1", new QueryParser.DefaultCheck<>("Ab1", false, String.class));
         tests.put("AB1", new QueryParser.DefaultCheck<>("AB1", false, String.class));
+        tests.put("A/B/1", new QueryParser.DefaultCheck<>("A/B/1", false, String.class));
         
         for (Entry<String, ? extends QueryParser.DefaultCheck> e : tests.entrySet()) {
             ParsingResult<Object> result = run("d0:" + e.getKey());
