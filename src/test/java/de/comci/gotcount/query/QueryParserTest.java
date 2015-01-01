@@ -94,7 +94,7 @@ public class QueryParserTest {
 
         ParsingResult<Object> result = run(input);
         final Map<String, Predicate> mapped = defaultSuccessChecks(result);
-        
+
         assertThat(mapped.size()).isEqualTo(1);
         assertThat(mapped.containsKey(dimension)).isTrue();
         assertThat(mapped.get(dimension)).isEqualTo(new QueryParser.NumberCheck(123l, false));
@@ -109,6 +109,45 @@ public class QueryParserTest {
 
         ParsingResult<Object> result = run(input);
         assertThat(result.matched).isFalse();
+    }
+
+    @Test
+    public void dimensionWithWhitespace() {
+        String dimension = "I have some whitespace";
+
+        QueryParser p = Parboiled.createParser(QueryParser.class);
+        ReportingParseRunner<Object> runner = new ReportingParseRunner<>(p.Dimension());
+        ParsingResult<Object> result = runner.run(dimension);
+        assertThat(result.resultValue).isEqualTo(dimension);
+    }
+
+    @Test
+    public void filterWithWhitespaceDimension() {
+        String dimension = "I have some whitespace";
+        int filter = 123;
+        String input = dimension + ":" + filter;
+
+        ParsingResult<Object> result = run(input);
+        final Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.size()).isEqualTo(1);
+        assertThat(mapped.containsKey(dimension)).isTrue();
+        assertThat(mapped.get(dimension)).isEqualTo(new QueryParser.NumberCheck(123l, false));
+    }
+    
+    @Test
+    public void filterWith_Escaped_ControlCharsInDimension() {
+        String dimension = "I have\\: some whitespace\\!";
+        int filter = 123;
+        String input = dimension + ":" + filter;
+
+        ParsingResult<Object> result = run(input);
+        final Map<String, Predicate> mapped = defaultSuccessChecks(result);
+
+        assertThat(mapped.size()).isEqualTo(1);
+        final String unmaskedDimension = "I have: some whitespace!";
+        assertThat(mapped.containsKey(unmaskedDimension)).isTrue();
+        assertThat(mapped.get(unmaskedDimension)).isEqualTo(new QueryParser.NumberCheck(123l, false));
     }
 
     @Test
@@ -310,48 +349,48 @@ public class QueryParserTest {
     private void printNodeTree(ParsingResult<Object> result) {
         System.out.println(ParseTreeUtils.printNodeTree(result));
     }
-    
+
     @Test
     public void everythingWeConsiderToBeAValidString() {
-        
+
         Map<String, QueryParser.DefaultCheck<String>> tests = new HashMap<>();
         tests.put("1.2.3.4", new QueryParser.DefaultCheck<>("1.2.3.4", false, String.class));
         tests.put("1+1", new QueryParser.DefaultCheck<>("1+1", false, String.class));
         tests.put("a", new QueryParser.DefaultCheck<>("a", false, String.class));
         tests.put("ab", new QueryParser.DefaultCheck<>("ab", false, String.class));
-        tests.put("aB", new QueryParser.DefaultCheck<>("aB", false, String.class));        
+        tests.put("aB", new QueryParser.DefaultCheck<>("aB", false, String.class));
         tests.put("A", new QueryParser.DefaultCheck<>("A", false, String.class));
         tests.put("Ab", new QueryParser.DefaultCheck<>("Ab", false, String.class));
         tests.put("AB", new QueryParser.DefaultCheck<>("AB", false, String.class));
         tests.put("0a", new QueryParser.DefaultCheck<>("0a", false, String.class));
         tests.put("0ab", new QueryParser.DefaultCheck<>("0ab", false, String.class));
-        tests.put("0aB", new QueryParser.DefaultCheck<>("0aB", false, String.class));        
+        tests.put("0aB", new QueryParser.DefaultCheck<>("0aB", false, String.class));
         tests.put("0A", new QueryParser.DefaultCheck<>("0A", false, String.class));
         tests.put("0Ab", new QueryParser.DefaultCheck<>("0Ab", false, String.class));
         tests.put("0AB", new QueryParser.DefaultCheck<>("0AB", false, String.class));
         tests.put("a1", new QueryParser.DefaultCheck<>("a1", false, String.class));
         tests.put("ab1", new QueryParser.DefaultCheck<>("ab1", false, String.class));
-        tests.put("aB1", new QueryParser.DefaultCheck<>("aB1", false, String.class));        
+        tests.put("aB1", new QueryParser.DefaultCheck<>("aB1", false, String.class));
         tests.put("A1", new QueryParser.DefaultCheck<>("A1", false, String.class));
         tests.put("Ab1", new QueryParser.DefaultCheck<>("Ab1", false, String.class));
         tests.put("AB1", new QueryParser.DefaultCheck<>("AB1", false, String.class));
         tests.put("A/B/1", new QueryParser.DefaultCheck<>("A/B/1", false, String.class));
-        
+
         for (Entry<String, ? extends QueryParser.DefaultCheck> e : tests.entrySet()) {
             ParsingResult<Object> result = run("d0:" + e.getKey());
             Map<String, Predicate> mapped = defaultSuccessChecks(result);
             assertThat(mapped.keySet()).containsOnly("d0");
             assertThat(mapped.get("d0")).isEqualTo(e.getValue());
         }
-        
+
     }
 
     @Test
     public void ipAsString() {
 
         String input = "d0:10.10.10.10";
-        
-        ParsingResult<Object> result = run(input);        
+
+        ParsingResult<Object> result = run(input);
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
         assertThat(mapped.keySet()).containsOnly("d0");
         assertThat(mapped.get("d0")).isEqualTo(new QueryParser.DefaultCheck<>("10.10.10.10", false, String.class));
@@ -417,9 +456,9 @@ public class QueryParserTest {
         assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isFalse();
         assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
 
-        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110,0,1), false, new Date(113,11,31), false);        
+        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110, 0, 1), false, new Date(113, 11, 31), false);
         assertThat(mapped.get("d0")).isEqualTo(expected);
-        
+
     }
 
     @Test
@@ -431,15 +470,15 @@ public class QueryParserTest {
         Map<String, Predicate> mapped = defaultSuccessChecks(result);
 
         assertThat(mapped.keySet()).containsOnly("d0");
-        
+
         assertThat(mapped.get("d0").test(new Date(109, 11, 31))).isFalse();
         assertThat(mapped.get("d0").test(new Date(110, 0, 1))).isTrue();
         assertThat(mapped.get("d0").test(new Date(110, 0, 2))).isTrue();
         assertThat(mapped.get("d0").test(new Date(113, 11, 30))).isTrue();
         assertThat(mapped.get("d0").test(new Date(113, 11, 31))).isTrue();
         assertThat(mapped.get("d0").test(new Date(114, 0, 1))).isFalse();
-        
-        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110,0,1), true, new Date(113,11,31), true);        
+
+        QueryParser.RangeCheck expected = new QueryParser.RangeCheck(new Date(110, 0, 1), true, new Date(113, 11, 31), true);
         assertThat(mapped.get("d0")).isEqualTo(expected);
 
     }
@@ -481,7 +520,7 @@ public class QueryParserTest {
         ParsingResult<Object> result = runner.run("0.1");
         assertThat(result.resultValue).isEqualTo(0.1);
     }
-    
+
     @Test
     public void negativeDoubleNumber() {
         QueryParser p = Parboiled.createParser(QueryParser.class);
@@ -489,7 +528,7 @@ public class QueryParserTest {
         ParsingResult<Object> result = runner.run("-0.1");
         assertThat(result.resultValue).isEqualTo(-0.1);
     }
-    
+
     @Test
     public void longNumber() {
         QueryParser p = Parboiled.createParser(QueryParser.class);
@@ -497,7 +536,7 @@ public class QueryParserTest {
         ParsingResult<Object> result = runner.run("4711");
         assertThat(result.resultValue).isEqualTo(4711l);
     }
-    
+
     @Test
     public void negativeLongNumber() {
         QueryParser p = Parboiled.createParser(QueryParser.class);

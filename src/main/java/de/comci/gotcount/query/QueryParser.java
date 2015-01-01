@@ -33,21 +33,21 @@ class QueryParser extends BaseParser<Object> {
 
         return Sequence(
                 Filter(),
-                addToMap((String) pop(1), (Predicate) pop()),
+                addToMap((Map.Entry<String,Predicate>) pop()),
                 ZeroOrMore(
                         Sequence(
                                 TestNot(String("\\")),
                                 String(";"),
                                 Filter(),
-                                addToMap((String) pop(1), (Predicate) pop())
+                                addToMap((Map.Entry<String,Predicate>) pop())
                         )
                 ),
                 push(map)
         );
     }
 
-    boolean addToMap(String key, Predicate value) {
-        map.put(key, value);
+    boolean addToMap(Map.Entry<String,Predicate> entry) {
+        map.put(entry.getKey(), entry.getValue());
         return true;
     }
 
@@ -56,21 +56,22 @@ class QueryParser extends BaseParser<Object> {
                 Dimension(),
                 //TestNot(String("\\")), not necessary as dimension does not allow '\' or ':'
                 String(":"),
-                Condition()
+                Condition(),
+                push(new HashMap.SimpleEntry<>((String)pop(1), (Predicate) pop()))
         );
     }
 
     Rule Dimension() {
         return Sequence(
-                ZeroOrMore(
+                OneOrMore(
                         FirstOf(
                                 Char(),
                                 Long(),
-                                String("-"),
-                                String("_")
+                                AnyOfThese("-_ "),
+                                EscapedControlChars()
                         )
                 ),
-                push(matchOrDefault(""))
+                push(matchOrDefault("").replace("\\", "")) // remove the mask
         );
     }
 
@@ -325,17 +326,24 @@ class QueryParser extends BaseParser<Object> {
 
     Rule String() {
         StringVar s = new StringVar();
-        return Sequence(
-                ZeroOrMore(
-                        FirstOf(
-                                Sequence(Char(), s.append(match())),
+        return Sequence(ZeroOrMore(FirstOf(Sequence(Char(), s.append(match())),
                                 Sequence(Digit(), s.append(match())),
                                 Sequence(AnyOfThese(".+/"), s.append(match())),
-                                Sequence(String("\\"), AnyOfThese(":()[];!"), s.append(match()))
+                                Sequence(EscapedControlChars(), s.append((String)pop()))
                         )
                 ),
                 Test(EndOfAtom()),
                 push(s.get())
+        );
+    }
+
+    Rule EscapedControlChars() {
+        return Sequence(
+                String("\\"), 
+                Sequence(
+                        AnyOfThese(":()[];!"), 
+                        push(matchOrDefault(""))
+                )
         );
     }
 
