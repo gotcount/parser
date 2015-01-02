@@ -5,11 +5,7 @@
  */
 package de.comci.gotcount.query;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import org.parboiled.Parboiled;
 import org.parboiled.parserunners.ReportingParseRunner;
 

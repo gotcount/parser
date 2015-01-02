@@ -544,7 +544,7 @@ public class QueryParserTest {
         ParsingResult<Object> result = runner.run("-4711");
         assertThat(result.resultValue).isEqualTo(-4711l);
     }
-
+    
     @Test
     public void rangeCheckInclusive() {
 
