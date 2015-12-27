@@ -16,11 +16,13 @@ import org.parboiled.annotations.SuppressSubnodes;
 import org.parboiled.support.StringVar;
 
 /**
- * Query := Filter(';' Filter) Filter := Object':'Action Action := Value /
- * UnaryOperation Value / Value BinaryOperation Value / SetOperation (Value /
- * '['Value(',' Value)*']') / SetOperation ('('/'[') Value(',' Value)* (')'/']')
- * UnaryOperation := '!' / '>' / '<' BinaryOperation := '-' SetOperation := 'IN'
- * / '!IN' Value := Number / String
+ * Query := Filter(';' Filter) 
+ * Filter := Object':'Action 
+ * Action := Value | UnaryOperation | BinaryOperation | SetOperation
+ * UnaryOperation := ( '!' | '>' | '<' ) Value
+ * BinaryOperation := Value '-' Value
+ * SetOperation := ( 'IN' | '!IN' ) ( Value | ( '[' | '(' ) Value (',' Value)* ( ')' | ']' ) )
+ * Value := Number / String
  *
  * @author Sebastian Maier (sebastian.maier@comci.de)
  */
